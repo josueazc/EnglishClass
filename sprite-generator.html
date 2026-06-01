@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PochisClass — Sprite Sheet Generator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background:#0a0a12; font-family:'Courier New',monospace; }
+    canvas { image-rendering: pixelated; image-rendering: crisp-edges; }
+    .char-card { transition: transform .12s; }
+    .char-card:hover { transform: scale(1.04); }
+    .download-btn {
+      background:linear-gradient(135deg,#2A6A40,#1A4A2A);
+      border:1px solid #3A8A50;
+      transition: filter .15s;
+    }
+    .download-btn:hover { filter: brightness(1.2); }
+    ::-webkit-scrollbar { width:5px; }
+    ::-webkit-scrollbar-thumb { background:#333; border-radius:3px; }
+  </style>
+</head>
+<body class="text-white min-h-screen">
+
+<!-- ── Header ── -->
+<div class="sticky top-0 z-10 px-6 py-4 flex items-center justify-between"
+     style="background:rgba(8,8,18,.95);border-bottom:1px solid rgba(255,255,255,.08);backdrop-filter:blur(8px)">
+  <div>
+    <h1 class="text-xl font-bold" style="color:#5edb7c">PochisClass — Sprite Generator</h1>
+    <p class="text-xs text-zinc-500">Pixel art chibi · 48×72px · 4 animaciones por personaje</p>
+  </div>
+  <div class="flex gap-2">
+    <button id="btn-download-all"
+      class="download-btn px-4 py-2 rounded-lg text-sm font-bold text-white cursor-pointer">
+      ⬇ Descargar todo
+    </button>
+    <button id="btn-class-photo"
+      class="px-4 py-2 rounded-lg text-sm font-bold text-white cursor-pointer"
+      style="background:linear-gradient(135deg,#4A2080,#2A0A60);border:1px solid #6A30A0">
+      📸 Foto de clase
+    </button>
+  </div>
+</div>
+
+<!-- ── Anim selector ── -->
+<div class="px-6 py-3 flex gap-2 flex-wrap"
+     style="border-bottom:1px solid rgba(255,255,255,.06)">
+  <span class="text-xs text-zinc-500 self-center mr-2">Vista previa:</span>
+  <button data-anim="idle"       class="anim-tab active-tab px-3 py-1 rounded-full text-xs">Idle</button>
+  <button data-anim="walk_down"  class="anim-tab px-3 py-1 rounded-full text-xs">Walk ↓</button>
+  <button data-anim="walk_up"    class="anim-tab px-3 py-1 rounded-full text-xs">Walk ↑</button>
+  <button data-anim="walk_right" class="anim-tab px-3 py-1 rounded-full text-xs">Walk →</button>
+  <button data-anim="walk_left"  class="anim-tab px-3 py-1 rounded-full text-xs">Walk ←</button>
+  <button data-anim="run_down"   class="anim-tab px-3 py-1 rounded-full text-xs">Run ↓</button>
+  <button data-anim="interact"   class="anim-tab px-3 py-1 rounded-full text-xs">Interact</button>
+  <button data-anim="celebrate"  class="anim-tab px-3 py-1 rounded-full text-xs">Celebrate</button>
+  <span class="text-xs text-zinc-600 self-center ml-auto">
+    Tamaño sprite: <strong class="text-zinc-400">48 × 72 px</strong> (scale ×3)
+  </span>
+</div>
+
+<style>
+  .anim-tab { background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12); cursor:pointer; color:#aaa; }
+  .anim-tab:hover { background:rgba(255,255,255,.12); }
+  .active-tab { background:rgba(94,219,124,.15) !important; border-color:rgba(94,219,124,.4) !important; color:#5edb7c !important; }
+</style>
+
+<!-- ── Character grid ── -->
+<div id="char-grid" class="grid gap-5 p-6"
+     style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+</div>
+
+<!-- ── Class photo modal ── -->
+<div id="class-photo-modal" class="fixed inset-0 z-50 hidden items-center justify-center"
+     style="background:rgba(0,0,0,.85)">
+  <div class="rounded-2xl p-4 max-w-4xl w-full mx-4" style="background:#111120;border:1px solid #333">
+    <div class="flex justify-between items-center mb-3">
+      <h2 class="font-bold text-lg" style="color:#5edb7c">📸 Foto de Clase — PochisClass</h2>
+      <button id="modal-close" class="text-zinc-500 hover:text-white text-xl">✕</button>
+    </div>
+    <canvas id="class-photo-canvas" class="rounded-xl w-full" style="max-height:65vh;object-fit:contain"></canvas>
+    <div class="flex gap-3 mt-3 justify-end">
+      <button id="btn-download-photo"
+        class="download-btn px-5 py-2 rounded-lg text-sm font-bold cursor-pointer">
+        ⬇ Descargar foto de clase
+      </button>
+      <button id="modal-close-2"
+        class="px-4 py-2 rounded-lg text-sm text-zinc-400 cursor-pointer"
+        style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)">
+        Cerrar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import { CHARACTERS }                    from "./src/characters.js";
+import { drawChibiCharacter, applyOutline, drawShadow } from "./src/chibi-draw.js";
+
+// ── Constants ──────────────────────────────────────────────────────────────────
+const SCALE   = 3;
+const SPR_W   = 16 * SCALE; // 48
+const SPR_H   = 24 * SCALE; // 72
+const CX      = SPR_W / 2;  // centre x inside frame
+const CY      = SPR_H;      // feet y inside frame (bottom)
+
+// ── Animation definitions ──────────────────────────────────────────────────────
+// Each frame: { facing, walkCycle, sitting, bobY }
+const ANIMS = {
+  idle: [
+    { facing:"down",  walkCycle:0,   sitting:false, bobY:0 },
+    { facing:"down",  walkCycle:0.1, sitting:false, bobY:-1 },
+    { facing:"down",  walkCycle:0.2, sitting:false, bobY:-1 },
+    { facing:"down",  walkCycle:0.1, sitting:false, bobY:0 },
+  ],
+  walk_down: [
+    { facing:"down", walkCycle:0    },
+    { facing:"down", walkCycle:0.67 },
+    { facing:"down", walkCycle:1.33 },
+    { facing:"down", walkCycle:2    },
+    { facing:"down", walkCycle:2.67 },
+    { facing:"down", walkCycle:3.33 },
+  ],
+  walk_up: [
+    { facing:"up", walkCycle:0    },
+    { facing:"up", walkCycle:0.67 },
+    { facing:"up", walkCycle:1.33 },
+    { facing:"up", walkCycle:2    },
+    { facing:"up", walkCycle:2.67 },
+    { facing:"up", walkCycle:3.33 },
+  ],
+  walk_right: [
+    { facing:"right", walkCycle:0    },
+    { facing:"right", walkCycle:0.67 },
+    { facing:"right", walkCycle:1.33 },
+    { facing:"right", walkCycle:2    },
+    { facing:"right", walkCycle:2.67 },
+    { facing:"right", walkCycle:3.33 },
+  ],
+  walk_left: [
+    { facing:"left", walkCycle:0    },
+    { facing:"left", walkCycle:0.67 },
+    { facing:"left", walkCycle:1.33 },
+    { facing:"left", walkCycle:2    },
+    { facing:"left", walkCycle:2.67 },
+    { facing:"left", walkCycle:3.33 },
+  ],
+  run_down: [
+    { facing:"down", walkCycle:0    },
+    { facing:"down", walkCycle:1    },
+    { facing:"down", walkCycle:2    },
+    { facing:"down", walkCycle:2.5  },
+    { facing:"down", walkCycle:3    },
+    { facing:"down", walkCycle:3.5  },
+  ],
+  interact: [
+    { facing:"down", walkCycle:0,   sitting:false },
+    { facing:"down", walkCycle:0.5, sitting:false },
+    { facing:"right",walkCycle:0.3, sitting:false },
+    { facing:"down", walkCycle:0,   sitting:false },
+  ],
+  celebrate: [
+    { facing:"down", walkCycle:0,   sitting:false, bobY:0  },
+    { facing:"down", walkCycle:1,   sitting:false, bobY:-3 },
+    { facing:"right",walkCycle:1.5, sitting:false, bobY:-5 },
+    { facing:"down", walkCycle:2,   sitting:false, bobY:-3 },
+    { facing:"left", walkCycle:2.5, sitting:false, bobY:-5 },
+    { facing:"down", walkCycle:3,   sitting:false, bobY:0  },
+  ],
+};
+
+// ── Render one frame to offscreen canvas ───────────────────────────────────────
+function renderFrame(char, { facing, walkCycle, sitting, bobY = 0 }) {
+  const oc  = new OffscreenCanvas(SPR_W, SPR_H);
+  const ctx = oc.getContext("2d");
+  // transparent background
+  drawShadow(ctx, CX, CY - 2);
+  drawChibiCharacter(ctx, char, CX, CY + bobY, SCALE, facing || "down", walkCycle || 0, !!sitting);
+  applyOutline(ctx, SPR_W, SPR_H);
+  return oc;
+}
+
+// ── Build sprite sheet for one animation ──────────────────────────────────────
+function buildAnimSheet(char, animKey) {
+  const frames = ANIMS[animKey];
+  const sw = SPR_W * frames.length;
+  const sh = SPR_H;
+  const oc  = new OffscreenCanvas(sw, sh);
+  const ctx = oc.getContext("2d");
+  frames.forEach((f, i) => {
+    const frame = renderFrame(char, f);
+    ctx.drawImage(frame, i * SPR_W, 0);
+  });
+  return oc;
+}
+
+// ── Full sprite sheet (all anims stacked vertically) ─────────────────────────
+function buildFullSheet(char) {
+  const animKeys  = Object.keys(ANIMS);
+  const maxFrames = Math.max(...animKeys.map(k => ANIMS[k].length));
+  const sw = SPR_W * maxFrames;
+  const sh = SPR_H * animKeys.length;
+  const oc  = new OffscreenCanvas(sw, sh);
+  const ctx = oc.getContext("2d");
+
+  // Header background
+  ctx.fillStyle = "rgba(10,10,20,0.0)";
+  ctx.fillRect(0, 0, sw, sh);
+
+  animKeys.forEach((key, row) => {
+    const frames = ANIMS[key];
+    frames.forEach((f, col) => {
+      const frame = renderFrame(char, f);
+      ctx.drawImage(frame, col * SPR_W, row * SPR_H);
+    });
+  });
+  return oc;
+}
+
+// ── Convert OffscreenCanvas to data URL ───────────────────────────────────────
+async function toDataURL(oc) {
+  const blob = await oc.convertToBlob({ type: "image/png" });
+  return URL.createObjectURL(blob);
+}
+
+function download(url, filename) {
+  const a = document.createElement("a");
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+}
+
+// ── Build preview canvas (loops current animation) ───────────────────────────
+function makePreview(char, animKey) {
+  const canvas = document.createElement("canvas");
+  canvas.width  = SPR_W;
+  canvas.height = SPR_H;
+  canvas.style.cssText = `width:${SPR_W * 2}px;height:${SPR_H * 2}px;image-rendering:pixelated;image-rendering:crisp-edges`;
+
+  const ctx    = canvas.getContext("2d");
+  const frames = ANIMS[animKey];
+  const fps    = animKey.includes("run") ? 12 : animKey === "idle" ? 4 : 8;
+  const delay  = 1000 / fps;
+  let   fi     = 0, last = 0, rafId;
+
+  function draw(ts) {
+    if (ts - last >= delay) {
+      const frame = renderFrame(char, frames[fi]);
+      ctx.clearRect(0, 0, SPR_W, SPR_H);
+      ctx.drawImage(frame, 0, 0);
+      fi = (fi + 1) % frames.length;
+      last = ts;
+    }
+    rafId = requestAnimationFrame(draw);
+  }
+  rafId = requestAnimationFrame(draw);
+  canvas._stop = () => cancelAnimationFrame(rafId);
+  return canvas;
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+let currentAnim = "idle";
+const previews  = new Map(); // charKey → { canvas, card }
+
+// ── Build character cards ─────────────────────────────────────────────────────
+function buildGrid() {
+  const grid = document.getElementById("char-grid");
+  grid.innerHTML = "";
+  previews.clear();
+
+  for (const [key, char] of Object.entries(CHARACTERS)) {
+    const isTeacher = !!char.isTeacher;
+    const card = document.createElement("div");
+    card.className = "char-card rounded-2xl p-3 flex flex-col gap-2";
+    card.style.cssText = isTeacher
+      ? "background:rgba(80,30,120,.25);border:1px solid rgba(160,80,220,.3)"
+      : "background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)";
+
+    // Preview canvas
+    const pCanvas = makePreview(char, currentAnim);
+    const previewWrap = document.createElement("div");
+    previewWrap.style.cssText = "display:flex;align-items:center;justify-content:center;height:144px;background:rgba(0,0,0,.3);border-radius:12px;overflow:hidden";
+    previewWrap.appendChild(pCanvas);
+
+    // Name
+    const nameEl = document.createElement("div");
+    nameEl.style.cssText = `font-size:12px;font-weight:bold;color:${isTeacher ? "#c084fc" : "#e0e0e0"}`;
+    nameEl.textContent = char.name;
+
+    const roleEl = document.createElement("div");
+    roleEl.style.cssText = `font-size:10px;color:${isTeacher ? "#a855f7" : "#666"}`;
+    roleEl.textContent = isTeacher ? "👩‍🏫 Profesora" : "🎒 Estudiante";
+
+    // Download buttons row
+    const btnRow = document.createElement("div");
+    btnRow.style.cssText = "display:flex;gap:4px;flex-wrap:wrap";
+
+    const dlFull = document.createElement("button");
+    dlFull.className = "download-btn text-white rounded-lg text-xs px-3 py-1.5 cursor-pointer font-bold flex-1";
+    dlFull.textContent = "⬇ Sheet completo";
+    dlFull.addEventListener("click", async () => {
+      dlFull.textContent = "⏳…";
+      const oc  = buildFullSheet(char);
+      const url = await toDataURL(oc);
+      download(url, `${key}_spritesheet.png`);
+      dlFull.textContent = "✓ Descargado";
+      setTimeout(() => { dlFull.textContent = "⬇ Sheet completo"; }, 2000);
+    });
+
+    const dlAnim = document.createElement("button");
+    dlAnim.style.cssText = "background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:#ccc;border-radius:8px;font-size:11px;padding:4px 10px;cursor:pointer";
+    dlAnim.textContent = "⬇ Solo anim";
+    dlAnim.addEventListener("click", async () => {
+      dlAnim.textContent = "⏳…";
+      const oc  = buildAnimSheet(char, currentAnim);
+      const url = await toDataURL(oc);
+      download(url, `${key}_${currentAnim}.png`);
+      dlAnim.textContent = "✓";
+      setTimeout(() => { dlAnim.textContent = "⬇ Solo anim"; }, 2000);
+    });
+
+    btnRow.append(dlFull, dlAnim);
+
+    // Frame strip preview (static, shows all frames side by side)
+    const stripCanvas = document.createElement("canvas");
+    const frames      = ANIMS[currentAnim];
+    stripCanvas.width  = SPR_W * frames.length;
+    stripCanvas.height = SPR_H;
+    stripCanvas.style.cssText = `width:${SPR_W * frames.length * 1.5}px;height:${SPR_H * 1.5}px;image-rendering:pixelated;border-radius:6px;border:1px solid rgba(255,255,255,.08);background:rgba(0,0,0,.4)`;
+    const sCtx = stripCanvas.getContext("2d");
+    frames.forEach((f, i) => {
+      const fr = renderFrame(char, f);
+      sCtx.drawImage(fr, i * SPR_W, 0);
+    });
+    const stripWrap = document.createElement("div");
+    stripWrap.style.cssText = "overflow-x:auto;padding-bottom:2px";
+    stripWrap.appendChild(stripCanvas);
+
+    card.append(previewWrap, nameEl, roleEl, stripWrap, btnRow);
+    grid.appendChild(card);
+    previews.set(key, { canvas: pCanvas, strip: stripCanvas, char });
+  }
+}
+
+// ── Anim tab switching ────────────────────────────────────────────────────────
+document.querySelectorAll(".anim-tab").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".anim-tab").forEach(b => b.classList.remove("active-tab"));
+    btn.classList.add("active-tab");
+    currentAnim = btn.dataset.anim;
+
+    // Stop old previews and restart with new anim
+    for (const [key, { canvas, strip, char }] of previews) {
+      canvas._stop?.();
+      // Restart preview
+      const newCanvas = makePreview(char, currentAnim);
+      canvas.parentNode.replaceChild(newCanvas, canvas);
+      previews.get(key).canvas = newCanvas;
+
+      // Refresh strip
+      const frames = ANIMS[currentAnim];
+      strip.width  = SPR_W * frames.length;
+      strip.style.width  = `${SPR_W * frames.length * 1.5}px`;
+      const sCtx = strip.getContext("2d");
+      sCtx.clearRect(0, 0, strip.width, strip.height);
+      frames.forEach((f, i) => {
+        const fr = renderFrame(char, f);
+        sCtx.drawImage(fr, i * SPR_W, 0);
+      });
+    }
+  });
+});
+
+// ── Download all ──────────────────────────────────────────────────────────────
+document.getElementById("btn-download-all").addEventListener("click", async () => {
+  const btn = document.getElementById("btn-download-all");
+  btn.textContent = "⏳ Generando…";
+  btn.disabled = true;
+
+  let i = 0;
+  for (const [key, char] of Object.entries(CHARACTERS)) {
+    const oc  = buildFullSheet(char);
+    const url = await toDataURL(oc);
+    download(url, `${key}_spritesheet.png`);
+    i++;
+    btn.textContent = `⏳ ${i}/${Object.keys(CHARACTERS).length}…`;
+    await new Promise(r => setTimeout(r, 300)); // stagger downloads
+  }
+  btn.textContent = "✅ ¡Listo!";
+  setTimeout(() => { btn.textContent = "⬇ Descargar todo"; btn.disabled = false; }, 3000);
+});
+
+// ── Class photo ───────────────────────────────────────────────────────────────
+async function buildClassPhoto() {
+  const chars   = Object.entries(CHARACTERS);
+  const COLS    = 7;
+  const ROWS    = Math.ceil(chars.length / COLS);
+  const PAD     = 16;
+  const CELL_W  = SPR_W + 24;
+  const CELL_H  = SPR_H + 30;
+  const W       = COLS * CELL_W + PAD * 2;
+  const H       = ROWS * CELL_H + PAD * 2 + 50;
+
+  const oc  = new OffscreenCanvas(W, H);
+  const ctx = oc.getContext("2d");
+
+  // Background
+  const bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, "#1A3020");
+  bg.addColorStop(1, "#0D1A12");
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+
+  // Title
+  ctx.fillStyle = "#5edb7c";
+  ctx.font      = "bold 22px monospace";
+  ctx.textAlign = "center";
+  ctx.fillText("PochisClass 🎓 English Class", W / 2, 34);
+
+  // Characters
+  for (let ci = 0; ci < chars.length; ci++) {
+    const [key, char] = chars[ci];
+    const col = ci % COLS;
+    const row = Math.floor(ci / COLS);
+    const cx  = PAD + col * CELL_W + CELL_W / 2;
+    const cy  = 50 + PAD + row * CELL_H + SPR_H;
+
+    const frame = renderFrame(char, { facing: "down", walkCycle: 0 });
+    ctx.drawImage(frame, cx - SPR_W / 2, cy - SPR_H);
+
+    // Name
+    ctx.fillStyle = char.isTeacher ? "#c084fc" : "#d0d0d0";
+    ctx.font      = char.isTeacher ? "bold 9px monospace" : "9px monospace";
+    ctx.textAlign = "center";
+    ctx.fillText(char.name.split(" ")[0], cx, cy + 14);
+  }
+
+  return oc;
+}
+
+document.getElementById("btn-class-photo").addEventListener("click", async () => {
+  const modal = document.getElementById("class-photo-modal");
+  modal.style.display = "flex";
+  const canvas = document.getElementById("class-photo-canvas");
+  const oc     = await buildClassPhoto();
+  const blob   = await oc.convertToBlob({ type: "image/png" });
+  const url    = URL.createObjectURL(blob);
+  canvas.src   = url;
+  canvas.width  = oc.width;
+  canvas.height = oc.height;
+  canvas._url   = url;
+  // Draw on actual canvas element
+  const img = new Image();
+  img.src = url;
+  img.onload = () => {
+    const ctx = canvas.getContext("2d");
+    canvas.width  = oc.width;
+    canvas.height = oc.height;
+    ctx.drawImage(img, 0, 0);
+  };
+
+  document.getElementById("btn-download-photo").addEventListener("click", () => {
+    download(url, "pochisclass_group_photo.png");
+  }, { once: true });
+});
+
+["modal-close","modal-close-2"].forEach(id => {
+  document.getElementById(id).addEventListener("click", () => {
+    document.getElementById("class-photo-modal").style.display = "none";
+  });
+});
+document.getElementById("class-photo-modal").addEventListener("click", (e) => {
+  if (e.target === document.getElementById("class-photo-modal")) {
+    document.getElementById("class-photo-modal").style.display = "none";
+  }
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+buildGrid();
+</script>
+</body>
+</html>

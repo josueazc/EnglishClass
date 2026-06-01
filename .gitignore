@@ -1,0 +1,6 @@
+node_modules/
+.partykit/
+dist/
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
