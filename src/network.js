@@ -5,9 +5,7 @@ export class Network {
     this._queue  = [];
     this._open   = false;
 
-    const host  = location.hostname === "localhost"
-      ? location.host
-      : "pochisclass.josue.partykit.dev";
+    const host  = location.host;
     const proto = location.protocol === "https:" ? "wss:" : "ws:";
     this.socket = new WebSocket(`${proto}//${host}/parties/main/${roomId || "main"}`);
 
