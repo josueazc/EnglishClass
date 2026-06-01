@@ -109,6 +109,28 @@
     ::-webkit-scrollbar        { width:5px; }
     ::-webkit-scrollbar-track  { background:transparent; }
     ::-webkit-scrollbar-thumb  { background:#3f3f46; border-radius:3px; }
+
+    /* ── D-pad pixel art buttons ── */
+    .dpbtn {
+      background: rgba(10,10,30,0.92);
+      border: 2px solid rgba(80,80,200,0.65);
+      color: #C2C3C7;
+      font-family: 'Press Start 2P', monospace;
+      font-size: 6px;
+      line-height: 1.3;
+      border-radius: 6px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      display: flex; align-items: center; justify-content: center;
+      text-align: center; cursor: pointer;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+    .dpbtn:active { transform: translateY(2px); box-shadow: 0 1px 0 rgba(0,0,0,0.6); }
+    #btn-jump { border-color:#FFEC27; color:#FFEC27; background:rgba(40,35,0,0.92); }
+    #btn-msg  { border-color:#00E436; color:#00E436; background:rgba(0,30,10,0.92); }
+    #btn-cam  { border-color:#29ADFF; color:#29ADFF; background:rgba(0,20,40,0.92); }
+    #btn-act  { border-color:#FF77A8; color:#FF77A8; background:rgba(40,0,20,0.92); }
   </style>
 </head>
 <body class="font-mono text-white">
@@ -244,41 +266,53 @@
 </div>
 
 
-<!-- ═══════════════ MOBILE JOYSTICK ═══════════════ -->
-<div id="joystick-area" class="fixed left-3 hidden touch-none z-50" style="bottom:1.2rem;width:130px;height:130px">
+<!-- ═══════════════ JOYSTICK (izquierda) ═══════════════ -->
+<div id="joystick-area" class="fixed left-3 hidden touch-none z-50" style="bottom:1.5rem;width:130px;height:130px">
   <div id="joystick-base" class="rounded-full relative"
-       style="width:130px;height:130px;background:rgba(255,255,255,.09);border:2.5px solid rgba(255,255,255,.22);box-shadow:0 0 20px rgba(74,222,128,.15)">
+       style="width:130px;height:130px;background:rgba(255,255,255,.07);border:2px solid rgba(255,255,255,.2)">
     <div id="joystick-knob" class="rounded-full absolute"
-         style="width:54px;height:54px;top:38px;left:38px;background:rgba(74,222,128,.82);border:2.5px solid #4ade80;box-shadow:0 0 12px rgba(74,222,128,.5)"></div>
+         style="width:54px;height:54px;top:38px;left:38px;background:rgba(74,222,128,.75);border:2px solid #4ade80"></div>
   </div>
 </div>
 
-<!-- Mobile right-side buttons — 2 columns -->
-<div id="mobile-btns" class="fixed hidden z-50"
-     style="bottom:1.2rem;right:0.8rem;display:grid;grid-template-columns:56px 68px;gap:8px;align-items:end">
+<!-- ═══════════════ D-PAD EN CRUZ (derecha) ═══════════════ -->
+<div id="dpad" class="fixed hidden z-50"
+     style="bottom:1.5rem;right:1rem;position:fixed;width:212px;height:212px">
 
-  <!-- left col: secondary actions -->
-  <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
-    <button id="cam-btn-mobile"
-      style="width:56px;height:56px;border-radius:50%;background:rgba(20,20,50,.88);border:2px solid #6060AA;font-size:22px;display:flex;align-items:center;justify-content:center;touch-action:manipulation">📷</button>
-    <button id="plane-btn"
-      style="width:56px;height:56px;border-radius:50%;background:rgba(20,60,120,.88);border:2px solid #29ADFF;font-size:24px;display:flex;align-items:center;justify-content:center;touch-action:manipulation">✈️</button>
-    <button id="jump-btn"
-      style="width:56px;height:56px;border-radius:50%;background:rgba(100,80,10,.88);border:2px solid #FFEC27;font-size:24px;display:flex;align-items:center;justify-content:center;touch-action:manipulation">⬆️</button>
-    <button id="standup-btn"
-      style="width:56px;height:56px;border-radius:50%;background:rgba(80,20,20,.88);border:2px solid #FF77A8;font-size:20px;display:flex;align-items:center;justify-content:center;touch-action:manipulation">🪑</button>
-  </div>
+  <!-- SALTAR (arriba) -->
+  <button id="btn-jump" class="dpbtn"
+    style="position:absolute;top:0;left:72px;width:68px;height:68px">
+    SALTAR
+  </button>
 
-  <!-- right col: main action + chat -->
-  <div style="display:flex;flex-direction:column;gap:8px;align-items:center">
-    <button id="react-btn-mobile"
-      style="width:68px;height:56px;border-radius:28px;background:rgba(20,20,40,.88);border:2px solid #3f3f46;font-size:22px;display:flex;align-items:center;justify-content:center;touch-action:manipulation">👍</button>
-    <button id="chat-btn-mobile"
-      style="width:68px;height:56px;border-radius:28px;background:rgba(20,60,30,.88);border:2px solid #4ade80;font-size:20px;display:flex;align-items:center;justify-content:center;touch-action:manipulation">💬</button>
-    <button id="interact-btn"
-      style="width:68px;height:68px;border-radius:50%;background:rgba(40,140,70,.92);border:3px solid #4ade80;font-size:22px;font-weight:bold;color:#fff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 18px rgba(74,222,128,.5);touch-action:manipulation">⚡</button>
-  </div>
+  <!-- MSG (izquierda) -->
+  <button id="btn-msg" class="dpbtn"
+    style="position:absolute;top:72px;left:0;width:68px;height:68px">
+    MSG
+  </button>
+
+  <!-- CAM (derecha) -->
+  <button id="btn-cam" class="dpbtn"
+    style="position:absolute;top:72px;right:0;width:68px;height:68px">
+    CAM
+  </button>
+
+  <!-- ACCION: pararse / sentarse / avion (abajo) -->
+  <button id="btn-act" class="dpbtn"
+    style="position:absolute;bottom:0;left:72px;width:68px;height:68px">
+    ACCION
+  </button>
 </div>
+
+<!-- IDs legacy que el JS aun necesita (ocultos) -->
+<div id="mobile-btns"    style="display:none"></div>
+<div id="interact-btn"   style="display:none"></div>
+<div id="standup-btn"    style="display:none"></div>
+<div id="plane-btn"      style="display:none"></div>
+<div id="jump-btn"       style="display:none"></div>
+<div id="chat-btn-mobile" style="display:none"></div>
+<div id="react-btn-mobile" style="display:none"></div>
+<div id="cam-btn-mobile" style="display:none"></div>
 
 
 <!-- ═══════════════ ONLINE COUNT ═══════════════ -->
@@ -565,21 +599,30 @@ function isMobile() { return "ontouchstart" in window || navigator.maxTouchPoint
 
 // ── Canvas sizing ─────────────────────────────────────────────────────────────
 function resizeCanvas(canvas) {
-  const mobile = isMobile();
-  const isFS   = !!document.fullscreenElement;
-  const aspect = 960 / 720;
-  // On mobile the HUD overlays the canvas — use full viewport height
-  let w = window.innerWidth;
-  let h = window.innerHeight - ((!mobile && !isFS) ? 48 : 0);
-  if (w / h > aspect) w = h * aspect; else h = w / aspect;
   canvas.width  = 960;
   canvas.height = 720;
-  canvas.style.width  = Math.floor(w) + "px";
-  canvas.style.height = Math.floor(h) + "px";
+  if (isMobile()) {
+    // Stretch to fill full screen — slight distortion but usa TODA la pantalla
+    canvas.style.width  = window.innerWidth  + "px";
+    canvas.style.height = window.innerHeight + "px";
+  } else {
+    const isFS   = !!document.fullscreenElement;
+    const aspect = 960 / 720;
+    let w = window.innerWidth, h = window.innerHeight - (isFS ? 0 : 48);
+    if (w / h > aspect) w = h * aspect; else h = w / aspect;
+    canvas.style.width  = Math.floor(w) + "px";
+    canvas.style.height = Math.floor(h) + "px";
+  }
 }
 document.addEventListener("fullscreenchange", () => {
   const canvas = document.getElementById("game-canvas");
   if (canvas) resizeCanvas(canvas);
+});
+window.addEventListener("orientationchange", () => {
+  setTimeout(() => {
+    const canvas = document.getElementById("game-canvas");
+    if (canvas) resizeCanvas(canvas);
+  }, 200);
 });
 
 // ── Reaction bar ──────────────────────────────────────────────────────────────
@@ -851,91 +894,78 @@ function startGame(charKey) {
 
   // ── Mobile controls ──
   if (isMobile()) {
-    // Make HUD a translucent overlay (doesn't push canvas up)
+    // HUD como overlay: oculta lo que no cabe
     const hud = document.getElementById("hud");
-    hud.style.background       = "rgba(8,8,18,0.65)";
-    hud.style.backdropFilter   = "blur(6px)";
-    // Hide elements that take too much space on mobile HUD
-    document.getElementById("reaction-bar").style.display   = "none";
-    document.getElementById("controls-hint").style.display  = "none";
-    document.getElementById("tasks-btn").style.display      = "none";
-    document.getElementById("cam-btn").style.display        = "none";
+    hud.style.background     = "rgba(8,8,18,0.55)";
+    hud.style.backdropFilter = "blur(4px)";
+    ["reaction-bar","controls-hint","tasks-btn","cam-btn"].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = "none";
+    });
 
-    document.getElementById("joystick-area").style.display  = "block";
-    document.getElementById("mobile-btns").style.display    = "grid";
+    // Muestra joystick y D-pad
+    document.getElementById("joystick-area").style.display = "block";
+    document.getElementById("dpad").style.display          = "block";
     setupJoystick(game);
 
-    // ── Interact / sit / stand ──
-    document.getElementById("interact-btn").addEventListener("touchstart", e => {
-      e.preventDefault(); game.tryInteract();
-    }, {passive:false});
-
-    // ── Force stand up ──
-    document.getElementById("standup-btn").addEventListener("touchstart", e => {
-      e.preventDefault(); game.forceStandUp();
-    }, {passive:false});
-
-    // ── Chat ──
-    document.getElementById("chat-btn-mobile").addEventListener("touchstart", e => {
-      e.preventDefault(); game.openChat();
-    }, {passive:false});
-
-    // ── Paper plane ──
-    document.getElementById("plane-btn").addEventListener("touchstart", e => {
-      e.preventDefault(); game.throwPlane();
-    }, {passive:false});
-
-    // ── Jump ──
-    document.getElementById("jump-btn").addEventListener("touchstart", e => {
+    // ── SALTAR ──
+    document.getElementById("btn-jump").addEventListener("touchend", e => {
       e.preventDefault(); game.jump();
     }, {passive:false});
 
-    // ── Camera (mobile) — renegocia con todos los peers ──
-    const camBtnMobile = document.getElementById("cam-btn-mobile");
+    // ── MSG ──
+    document.getElementById("btn-msg").addEventListener("touchend", e => {
+      e.preventDefault(); game.openChat();
+    }, {passive:false});
+
+    // ── ACCION (sentarse/pararse/avion) ──
+    document.getElementById("btn-act").addEventListener("touchend", e => {
+      e.preventDefault(); game.mobileAction();
+    }, {passive:false});
+
+    // ── CAM ─────────────────────────────────────────────────────────────────
+    // touchend para que iOS permita el dialogo de permiso
     let mobileCamOn = false;
-    camBtnMobile.addEventListener("touchstart", async e => {
+    const btnCam = document.getElementById("btn-cam");
+    btnCam.addEventListener("touchend", e => {
       e.preventDefault();
+      if (!navigator.mediaDevices?.getUserMedia) {
+        showToast("Solo funciona en HTTPS", "#f87171"); return;
+      }
       if (mobileCamOn) {
+        // Apagar camara
         videoMgr.localStream?.getTracks().forEach(t => t.stop());
         videoMgr.localStream = null;
         game.localVideo = null;
         mobileCamOn = false;
-        camBtnMobile.textContent = "📷";
-        camBtnMobile.style.borderColor = "#6060AA";
+        btnCam.textContent         = "CAM";
+        btnCam.style.borderColor   = "#29ADFF";
+        btnCam.style.color         = "#29ADFF";
         return;
       }
-      if (!navigator.mediaDevices?.getUserMedia) {
-        showToast("❌ Solo HTTPS", "#f87171"); return;
-      }
-      camBtnMobile.textContent = "⏳";
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: { width:{ideal:160}, height:{ideal:120}, facingMode:"user" }, audio:false,
+      // Encender camara — constraints minimos para maximo compatibilidad
+      btnCam.textContent = "...";
+      navigator.mediaDevices.getUserMedia({ video: true, audio: false })
+        .then(async stream => {
+          await videoMgr.updateStream(stream);
+          game.setLocalVideo(stream);
+          mobileCamOn = true;
+          btnCam.textContent       = "CAM ON";
+          btnCam.style.borderColor = "#4ade80";
+          btnCam.style.color       = "#4ade80";
+          showToast("Camara activada", "#4ade80");
+        })
+        .catch(err => {
+          btnCam.textContent = "CAM";
+          const msg = err.name === "NotAllowedError"
+            ? "Permiso de camara denegado"
+            : "No se pudo acceder a la camara";
+          showToast(msg, "#f87171");
         });
-        await videoMgr.updateStream(stream);
-        game.setLocalVideo(stream);
-        mobileCamOn = true;
-        camBtnMobile.textContent = "📹";
-        camBtnMobile.style.borderColor = "#4ade80";
-        showToast("📸 Cámara activada", "#4ade80");
-      } catch(err) {
-        camBtnMobile.textContent = "📷";
-        showToast(err.name==="NotAllowedError" ? "🚫 Permiso denegado" : "❌ Sin cámara", "#f87171");
-      }
     }, {passive:false});
 
-    // ── Quick reaction cycle ──
-    let rIdx = 0;
-    const rBtn = document.getElementById("react-btn-mobile");
-    const EMOJIS = ["👍","❤️","😂","🔥","✋","🎉","🤔","👏"];
-    rBtn.addEventListener("touchstart", e => {
-      e.preventDefault();
-      game.sendReaction(EMOJIS[rIdx % EMOJIS.length]);
-      rIdx++; rBtn.textContent = EMOJIS[rIdx % EMOJIS.length];
-    }, {passive:false});
-
-    // Auto-fullscreen on first tap
-    document.addEventListener("touchstart", () => {
+    // Auto fullscreen al primer toque (iOS requiere gesto)
+    document.addEventListener("touchend", () => {
       if (!document.fullscreenElement) toggleFullscreen();
     }, { once: true });
 

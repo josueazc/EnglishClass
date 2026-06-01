@@ -384,27 +384,61 @@ export class Game {
     if (this.chatMode) return;
     this.chatMode = true;
 
-    const wrap = document.createElement("div");
-    wrap.id = "chat-wrap";
-    wrap.style.cssText = "position:fixed;bottom:64px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:300;width:min(380px,92vw);align-items:center";
+    // Full overlay so keyboard doesn't bury the input
+    const overlay = document.createElement("div");
+    overlay.id = "chat-overlay";
+    overlay.style.cssText = [
+      "position:fixed;inset:0;z-index:500",
+      "background:rgba(0,0,0,0.82)",
+      "display:flex;align-items:flex-start;justify-content:center",
+      "padding-top:12vh",
+    ].join(";");
+
+    const box = document.createElement("div");
+    box.style.cssText = [
+      "width:min(420px,92vw)",
+      "background:#000;border:3px solid #29ADFF;border-radius:4px",
+      "padding:14px;display:flex;flex-direction:column;gap:12px",
+    ].join(";");
+
+    const lbl = document.createElement("div");
+    lbl.textContent = "MENSAJE:";
+    lbl.style.cssText = "color:#29ADFF;font-family:'Press Start 2P',monospace;font-size:8px";
 
     const inp = document.createElement("input");
     inp.type = "text"; inp.maxLength = 80;
-    inp.placeholder = "Escribe tu mensaje…";
-    inp.style.cssText = "flex:1;min-width:0;padding:10px 14px;border-radius:8px;border:3px solid #29ADFF;background:#000;color:#FFF1E8;font-family:'Press Start 2P',monospace;font-size:10px;outline:none;image-rendering:pixelated;";
+    inp.placeholder = "Escribe aqui...";
+    inp.style.cssText = [
+      "width:100%;padding:12px 10px",
+      "border:2px solid #29ADFF;border-radius:2px",
+      "background:#111;color:#FFF1E8",
+      "font-family:'Press Start 2P',monospace;font-size:10px",
+      "outline:none",
+    ].join(";");
 
-    const sendBtn = document.createElement("button");
-    sendBtn.textContent = "✈";
-    sendBtn.style.cssText = "flex-shrink:0;width:48px;height:48px;background:#29ADFF;color:#000;border:none;border-radius:8px;font-size:20px;cursor:pointer;touch-action:manipulation";
+    const row = document.createElement("div");
+    row.style.cssText = "display:flex;gap:8px";
 
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "✕";
-    closeBtn.style.cssText = "flex-shrink:0;width:48px;height:48px;background:#7E2553;color:#FFF1E8;border:none;border-radius:8px;font-size:16px;cursor:pointer;touch-action:manipulation";
+    const mkBtn = (label, bg, fg) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.style.cssText = [
+        "flex:1;padding:14px 8px",
+        `background:${bg};color:${fg};border:none;border-radius:2px`,
+        "font-family:'Press Start 2P',monospace;font-size:8px",
+        "cursor:pointer;touch-action:manipulation",
+      ].join(";");
+      return b;
+    };
+    const sendBtn   = mkBtn("ENVIAR",    "#29ADFF", "#000");
+    const cancelBtn = mkBtn("CANCELAR",  "#7E2553", "#FFF1E8");
+    row.append(sendBtn, cancelBtn);
+    box.append(lbl, inp, row);
+    overlay.appendChild(box);
+    document.body.appendChild(overlay);
+    this.chatInput = overlay;
 
-    wrap.append(inp, sendBtn, closeBtn);
-    document.body.appendChild(wrap);
-    setTimeout(() => inp.focus(), 50);
-    this.chatInput = wrap;
+    setTimeout(() => inp.focus(), 60);
 
     const send = () => {
       const t = inp.value.trim();
@@ -413,13 +447,15 @@ export class Game {
     };
     inp.addEventListener("keydown", e => {
       e.stopPropagation();
-      if (e.key === "Enter") send();
+      if (e.key === "Enter")  send();
       if (e.key === "Escape") this.closeChat();
     });
-    sendBtn.addEventListener("touchstart", e => { e.preventDefault(); send(); }, { passive:false });
-    sendBtn.addEventListener("click", send);
-    closeBtn.addEventListener("touchstart", e => { e.preventDefault(); this.closeChat(); }, { passive:false });
-    closeBtn.addEventListener("click", () => this.closeChat());
+    sendBtn.addEventListener("touchend",   e => { e.preventDefault(); send(); });
+    sendBtn.addEventListener("click",      send);
+    cancelBtn.addEventListener("touchend", e => { e.preventDefault(); this.closeChat(); });
+    cancelBtn.addEventListener("click",    () => this.closeChat());
+    overlay.addEventListener("touchend",   e => { if (e.target === overlay) this.closeChat(); });
+    overlay.addEventListener("click",      e => { if (e.target === overlay) this.closeChat(); });
   }
   closeChat() { this.chatMode=false; this.chatInput?.remove(); this.chatInput=null; }
 
@@ -429,6 +465,24 @@ export class Game {
     this.myPlayer.facing  = "down";
     this.interactCooldown = 0;
     this.network?.sendMove(this.myPlayer);
+  }
+
+  // D-pad ACTION: stand if sitting, sit if near desk, else throw plane
+  mobileAction() {
+    if (this.myPlayer.sitting) { this.forceStandUp(); return; }
+    if (this.interactCooldown > 0) return;
+    const { x, y } = this.myPlayer;
+    const di = getNearbyDesk(x, y);
+    if (di >= 0) {
+      const d = DESKS[di];
+      this.myPlayer.sitting = true;
+      this.myPlayer.x = d.seatX; this.myPlayer.y = d.seatY;
+      this.myPlayer.facing = "up";
+      this.network?.sendMove(this.myPlayer);
+      this.interactCooldown = 30;
+    } else {
+      this.throwPlane();
+    }
   }
 
   // ── TASK DIALOG ────────────────────────────────────────────────────────────
