@@ -384,61 +384,34 @@ export class Game {
     if (this.chatMode) return;
     this.chatMode = true;
 
-    // Full overlay so keyboard doesn't bury the input
-    const overlay = document.createElement("div");
-    overlay.id = "chat-overlay";
-    overlay.style.cssText = [
-      "position:fixed;inset:0;z-index:500",
-      "background:rgba(0,0,0,0.82)",
-      "display:flex;align-items:flex-start;justify-content:center",
-      "padding-top:12vh",
-    ].join(";");
+    const mobile = "ontouchstart" in window || navigator.maxTouchPoints > 0;
+    if (mobile) {
+      // prompt() nativo: siempre funciona, no bloquea el juego, el OS lo maneja
+      const text = window.prompt("Escribe tu mensaje:");
+      if (text && text.trim()) {
+        this.myPlayer.message = text.trim();
+        this.myPlayer.messageTimer = 5500;
+        this.network?.sendMessage(text.trim());
+      }
+      this.chatMode = false;
+      return;
+    }
 
-    const box = document.createElement("div");
-    box.style.cssText = [
-      "width:min(420px,92vw)",
-      "background:#000;border:3px solid #29ADFF;border-radius:4px",
-      "padding:14px;display:flex;flex-direction:column;gap:12px",
-    ].join(";");
-
-    const lbl = document.createElement("div");
-    lbl.textContent = "MENSAJE:";
-    lbl.style.cssText = "color:#29ADFF;font-family:'Press Start 2P',monospace;font-size:8px";
-
+    // Desktop: input elegante
     const inp = document.createElement("input");
-    inp.type = "text"; inp.maxLength = 80;
-    inp.placeholder = "Escribe aqui...";
+    inp.id = "chat-input"; inp.type = "text"; inp.maxLength = 80;
+    inp.placeholder = "Escribe… (Enter para enviar, Esc para cancelar)";
     inp.style.cssText = [
-      "width:100%;padding:12px 10px",
-      "border:2px solid #29ADFF;border-radius:2px",
-      "background:#111;color:#FFF1E8",
+      "position:fixed;bottom:72px;left:50%;transform:translateX(-50%)",
+      "width:min(380px,90vw);padding:10px 16px",
+      "border-radius:4px;border:3px solid #29ADFF",
+      "background:#000;color:#FFF1E8",
       "font-family:'Press Start 2P',monospace;font-size:10px",
-      "outline:none",
+      "z-index:200;outline:none",
     ].join(";");
-
-    const row = document.createElement("div");
-    row.style.cssText = "display:flex;gap:8px";
-
-    const mkBtn = (label, bg, fg) => {
-      const b = document.createElement("button");
-      b.textContent = label;
-      b.style.cssText = [
-        "flex:1;padding:14px 8px",
-        `background:${bg};color:${fg};border:none;border-radius:2px`,
-        "font-family:'Press Start 2P',monospace;font-size:8px",
-        "cursor:pointer;touch-action:manipulation",
-      ].join(";");
-      return b;
-    };
-    const sendBtn   = mkBtn("ENVIAR",    "#29ADFF", "#000");
-    const cancelBtn = mkBtn("CANCELAR",  "#7E2553", "#FFF1E8");
-    row.append(sendBtn, cancelBtn);
-    box.append(lbl, inp, row);
-    overlay.appendChild(box);
-    document.body.appendChild(overlay);
-    this.chatInput = overlay;
-
-    setTimeout(() => inp.focus(), 60);
+    document.body.appendChild(inp);
+    inp.focus();
+    this.chatInput = inp;
 
     const send = () => {
       const t = inp.value.trim();
@@ -450,12 +423,6 @@ export class Game {
       if (e.key === "Enter")  send();
       if (e.key === "Escape") this.closeChat();
     });
-    sendBtn.addEventListener("touchend",   e => { e.preventDefault(); send(); });
-    sendBtn.addEventListener("click",      send);
-    cancelBtn.addEventListener("touchend", e => { e.preventDefault(); this.closeChat(); });
-    cancelBtn.addEventListener("click",    () => this.closeChat());
-    overlay.addEventListener("touchend",   e => { if (e.target === overlay) this.closeChat(); });
-    overlay.addEventListener("click",      e => { if (e.target === overlay) this.closeChat(); });
   }
   closeChat() { this.chatMode=false; this.chatInput?.remove(); this.chatInput=null; }
 
@@ -467,20 +434,26 @@ export class Game {
     this.network?.sendMove(this.myPlayer);
   }
 
-  // D-pad ACTION: stand if sitting, sit if near desk, else throw plane
+  // ACCION: igual que E, y si no hay nada que usar → lanza avion
   mobileAction() {
-    if (this.myPlayer.sitting) { this.forceStandUp(); return; }
-    if (this.interactCooldown > 0) return;
+    if (this.chatMode || this.taskDialog || this.bookDialog || this.wbMode) return;
     const { x, y } = this.myPlayer;
-    const di = getNearbyDesk(x, y);
-    if (di >= 0) {
-      const d = DESKS[di];
-      this.myPlayer.sitting = true;
-      this.myPlayer.x = d.seatX; this.myPlayer.y = d.seatY;
-      this.myPlayer.facing = "up";
-      this.network?.sendMove(this.myPlayer);
-      this.interactCooldown = 30;
+
+    // Si sentado → parar
+    if (this.myPlayer.sitting) { this.forceStandUp(); return; }
+
+    // Hay algo con qué interactuar? → tryInteract
+    const held = this.myPlayer.heldObject;
+    const nearObj  = this.worldObjects.find(o => !o.heldBy && Math.hypot(o.x-x, o.y-y) < 46);
+    const nearWb   = isNearWhiteboard(x, y);
+    const nearBul  = isNearBulletin(x, y);
+    const nearBook = isNearBook(x, y);
+    const nearDesk = getNearbyDesk(x, y) >= 0;
+
+    if (held || nearObj || nearWb || nearBul || nearBook || nearDesk) {
+      this.tryInteract();
     } else {
+      // Nada cerca → avión de papel
       this.throwPlane();
     }
   }

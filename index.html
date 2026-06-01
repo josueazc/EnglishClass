@@ -909,17 +909,17 @@ function startGame(charKey) {
     setupJoystick(game);
 
     // ── SALTAR ──
-    document.getElementById("btn-jump").addEventListener("touchend", e => {
+    document.getElementById("btn-jump").addEventListener("touchstart", e => {
       e.preventDefault(); game.jump();
     }, {passive:false});
 
-    // ── MSG ──
-    document.getElementById("btn-msg").addEventListener("touchend", e => {
+    // ── MSG: prompt() nativo — no necesita touchend ──
+    document.getElementById("btn-msg").addEventListener("touchstart", e => {
       e.preventDefault(); game.openChat();
     }, {passive:false});
 
-    // ── ACCION (sentarse/pararse/avion) ──
-    document.getElementById("btn-act").addEventListener("touchend", e => {
+    // ── ACCION (E / avion si no hay nada) ──
+    document.getElementById("btn-act").addEventListener("touchstart", e => {
       e.preventDefault(); game.mobileAction();
     }, {passive:false});
 
