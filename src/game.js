@@ -383,22 +383,53 @@ export class Game {
   openChat() {
     if (this.chatMode) return;
     this.chatMode = true;
+
+    const wrap = document.createElement("div");
+    wrap.id = "chat-wrap";
+    wrap.style.cssText = "position:fixed;bottom:64px;left:50%;transform:translateX(-50%);display:flex;gap:6px;z-index:300;width:min(380px,92vw);align-items:center";
+
     const inp = document.createElement("input");
-    inp.id = "chat-input"; inp.type = "text"; inp.maxLength = 80;
-    inp.placeholder = "Escribe… (Enter)";
-    inp.style.cssText = "position:fixed;bottom:72px;left:50%;transform:translateX(-50%);width:340px;padding:10px 16px;border-radius:4px;border:3px solid #29ADFF;background:#000;color:#FFF1E8;font-family:'Press Start 2P',monospace;font-size:10px;z-index:200;outline:none;image-rendering:pixelated;";
-    document.body.appendChild(inp); inp.focus(); this.chatInput = inp;
+    inp.type = "text"; inp.maxLength = 80;
+    inp.placeholder = "Escribe tu mensaje…";
+    inp.style.cssText = "flex:1;min-width:0;padding:10px 14px;border-radius:8px;border:3px solid #29ADFF;background:#000;color:#FFF1E8;font-family:'Press Start 2P',monospace;font-size:10px;outline:none;image-rendering:pixelated;";
+
+    const sendBtn = document.createElement("button");
+    sendBtn.textContent = "✈";
+    sendBtn.style.cssText = "flex-shrink:0;width:48px;height:48px;background:#29ADFF;color:#000;border:none;border-radius:8px;font-size:20px;cursor:pointer;touch-action:manipulation";
+
+    const closeBtn = document.createElement("button");
+    closeBtn.textContent = "✕";
+    closeBtn.style.cssText = "flex-shrink:0;width:48px;height:48px;background:#7E2553;color:#FFF1E8;border:none;border-radius:8px;font-size:16px;cursor:pointer;touch-action:manipulation";
+
+    wrap.append(inp, sendBtn, closeBtn);
+    document.body.appendChild(wrap);
+    setTimeout(() => inp.focus(), 50);
+    this.chatInput = wrap;
+
+    const send = () => {
+      const t = inp.value.trim();
+      if (t) { this.myPlayer.message=t; this.myPlayer.messageTimer=5500; this.network?.sendMessage(t); }
+      this.closeChat();
+    };
     inp.addEventListener("keydown", e => {
       e.stopPropagation();
-      if (e.key==="Enter") {
-        const t=inp.value.trim();
-        if (t) { this.myPlayer.message=t; this.myPlayer.messageTimer=5500; this.network?.sendMessage(t); }
-        this.closeChat();
-      }
-      if (e.key==="Escape") this.closeChat();
+      if (e.key === "Enter") send();
+      if (e.key === "Escape") this.closeChat();
     });
+    sendBtn.addEventListener("touchstart", e => { e.preventDefault(); send(); }, { passive:false });
+    sendBtn.addEventListener("click", send);
+    closeBtn.addEventListener("touchstart", e => { e.preventDefault(); this.closeChat(); }, { passive:false });
+    closeBtn.addEventListener("click", () => this.closeChat());
   }
   closeChat() { this.chatMode=false; this.chatInput?.remove(); this.chatInput=null; }
+
+  forceStandUp() {
+    if (!this.myPlayer.sitting) return;
+    this.myPlayer.sitting = false;
+    this.myPlayer.facing  = "down";
+    this.interactCooldown = 0;
+    this.network?.sendMove(this.myPlayer);
+  }
 
   // ── TASK DIALOG ────────────────────────────────────────────────────────────
   _openTaskDialog() {

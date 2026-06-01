@@ -30,6 +30,24 @@ export class VideoManager {
     }
   }
 
+  async updateStream(stream) {
+    this.localStream = stream;
+    for (const [peerId, pc] of this.peers) {
+      const senders = pc.getSenders();
+      for (const track of stream.getTracks()) {
+        const existing = senders.find(s => s.track?.kind === track.kind);
+        if (existing) {
+          await existing.replaceTrack(track);
+        } else {
+          pc.addTrack(track, stream);
+          const offer = await pc.createOffer();
+          await pc.setLocalDescription(offer);
+          this._signal(peerId, { type: "offer", sdp: offer });
+        }
+      }
+    }
+  }
+
   async connectTo(peerId) {
     if (this.peers.has(peerId)) return;
     const pc = this._createPeer(peerId, true);
@@ -65,7 +83,7 @@ export class VideoManager {
     this.game.removeRemoteVideo(peerId);
   }
 
-  _createPeer(peerId, initiator) {
+  _createPeer(peerId, _initiator) {
     const pc = new RTCPeerConnection(this.ICE);
 
     if (this.localStream) {
