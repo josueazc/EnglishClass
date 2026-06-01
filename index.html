@@ -517,27 +517,6 @@ document.addEventListener("click", e => {
   }
 });
 
-// ── Whiteboard toolbar ────────────────────────────────────────────────────────
-document.querySelectorAll(".wb-color").forEach(el => {
-  el.addEventListener("click", () => {
-    document.querySelectorAll(".wb-color").forEach(c => c.classList.remove("active"));
-    el.classList.add("active");
-    if (window._game) { window._game.wbColor = el.dataset.color; window._game.wbTool = "pen"; }
-    document.getElementById("wb-eraser-btn").style.background = "rgba(255,255,255,0.07)";
-  });
-});
-document.getElementById("wb-size").addEventListener("input", e => {
-  if (window._game) window._game.wbSize = parseInt(e.target.value);
-});
-document.getElementById("wb-eraser-btn").addEventListener("click", function() {
-  if (!window._game) return;
-  window._game.wbTool = "eraser";
-  window._game.wbSize = 22;
-  this.style.background = "rgba(255,200,60,0.25)";
-  document.querySelectorAll(".wb-color").forEach(c => c.classList.remove("active"));
-});
-document.getElementById("wb-clear-btn").addEventListener("click", () => window._game?.clearWhiteboard());
-document.getElementById("wb-exit-btn").addEventListener("click", () => window._game?.exitWbMode());
 
 // ── Leaderboard ───────────────────────────────────────────────────────────────
 function showLeaderboard(lb) {

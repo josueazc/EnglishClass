@@ -8,7 +8,7 @@ import {
 } from "./classroom.js";
 
 const BASE_SCALE   = 3;
-const SPEED        = 2.6;
+const SPEED        = 3.2;
 const CAM_LERP     = 0.1;
 const CAM_W        = 70;
 const CAM_H        = 54;
@@ -36,7 +36,7 @@ export class Game {
     this.myPlayer = {
       id: network?.id || "local",
       character: charKey,
-      x: 710, y: 560,
+      x: 1250, y: 560,
       facing: "down",
       sitting: false,
       message: "", messageTimer: 0,
@@ -568,7 +568,7 @@ export class Game {
     ctx.save();
     ctx.translate(-Math.round(this.cam.x),-Math.round(this.cam.y));
 
-    drawClassroom(ctx);
+    drawClassroom(ctx, performance.now());
     drawBulletinTasks(ctx,this.tasks);
     drawBooks(ctx,this.books);
     drawCoins(ctx,this.coins,performance.now());
